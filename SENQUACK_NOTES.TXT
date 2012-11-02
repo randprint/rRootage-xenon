@@ -1,0 +1,8 @@
+* I am growing increasingly convinced the problems are caused my gpu940's line
+	drawing code.  I tried changing all GL_LINES to GL_LINE_STRIP and had no
+	luck.  Also tried converting all 3d vertexes for lines to 2D but no luck.
+* It seems LINE_LOOP and maybe LINE_STRIP in gpu940 do not save the first vertex
+	so that they can do the last line in the loop.  Only fixed by manually 
+	converting LINE_LOOP to a series of LINES
+* Seems that in screen.c startDrawBoards() might have a double-call to pushmatrix
+
