@@ -30,7 +30,6 @@ extern "C" {
 #include "shot.h"
 }
 
-  //senquack - tried tweaking this to fix hang:
 #define FOE_MAX 1024
 
 static Foe foe[FOE_MAX];
@@ -79,7 +78,6 @@ static Foe* getNextFoe() {
   return &(foe[foeIdx]);
 }
 
-  //senquack - tried tweaking this to fix hang:
 static Foe* addFoe(Foe *foe, int d, int spd, int color) {
   Foe *fe;
   if ( foe->limiter->on && foe->spc == BATTERY ) return NULL;
@@ -114,10 +112,6 @@ static Foe* addFoe(Foe *foe, int d, int spd, int color) {
   return fe;
 }
 
-//NOTE senquack - disabling these next several addFoe* functions led to quicker hangs and some
-//				segfaults
-
-  //senquack - tried tweaking this to fix hang:
 Foe* addFoeBattery(int x, int y, double rank, int d, int spd, int xReverse, 
 		   BulletMLParser *morphParser[], int morphCnt, int morphHalf, double morphRank,
 		   double speedRank,
@@ -150,7 +144,6 @@ Foe* addFoeBattery(int x, int y, double rank, int d, int spd, int xReverse,
   return fe;
 }
 
-  //senquack - tried tweaking this to fix hang:
 void addFoeActiveBullet(Foe *foe, int d, int spd, int color, BulletMLState *state) {
   Foe *fe;
   fe = addFoe(foe, d, spd, color);
@@ -161,7 +154,6 @@ void addFoeActiveBullet(Foe *foe, int d, int spd, int color, BulletMLState *stat
   else                    fe->shapeType = 1;
 }
 
-  //senquack - tried tweaking this to fix hang:
 void addFoeNormalBullet(Foe *foe, int d, int spd, int color) {
   Foe *fe;
   if ( foe->morphCnt > 0 && (!foe->morphHalf || (foe->fireCnt&1)) ) {

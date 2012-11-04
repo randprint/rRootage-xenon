@@ -30,8 +30,8 @@
 
 #define FAR_PLANE 720
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 1280
+#define SCREEN_HEIGHT 720
 #define LOWRES_SCREEN_WIDTH 320
 #define LOWRES_SCREEN_HEIGHT 240
 #define SHARE_LOC "uda://rrootage/"
@@ -79,6 +79,7 @@ static void initGL()
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   glEnable(GL_BLEND);
+  
 
   glDisable(GL_LIGHTING);
   glDisable(GL_CULL_FACE);
@@ -91,136 +92,34 @@ static void initGL()
 
 
 // Load bitmaps and convert to textures.
-void loadGLTexture(char *fileName, GLuint *texture)
-{  
+void loadGLTexture(char *fileName, GLuint *texture) 
+{
   SDL_Surface *surface;
   int mode=0; //The bit-depth of the texture.
   char name[32];
+
   strcpy(name, SHARE_LOC);
   strcat(name, "images/");
   strcat(name, fileName);
 
-  surface = IMG_Load(name); //Changed by Albert... this will load any image (hopefully transparent PNGs)
+  surface = SDL_LoadBMP(name);
   if ( !surface ) {
     fprintf(stderr, "Unable to load texture: %s\n", SDL_GetError());
     SDL_Quit();
     exit(1);
   }
   
-  surface = conv_surf_gl(surface, surface->format->Amask || (surface->flags & SDL_SRCCOLORKEY));
 
-
-	//Attempted hackery to make transparencies/color-keying work - Albert
-	SDL_PixelFormat RGBAFormat;
-	RGBAFormat.palette = 0; RGBAFormat.colorkey = 0; RGBAFormat.alpha = 0;
-	RGBAFormat.BitsPerPixel = 32; RGBAFormat.BytesPerPixel = 4;
-	#if SDL_BYTEORDER == SDL_BIG_ENDIAN
-	RGBAFormat.Rmask = 0xFF000000; RGBAFormat.Rshift = 0; RGBAFormat.Rloss = 0;
-	RGBAFormat.Gmask = 0x00FF0000; RGBAFormat.Gshift = 8; RGBAFormat.Gloss = 0;
-	RGBAFormat.Bmask = 0x0000FF00; RGBAFormat.Bshift = 16; RGBAFormat.Bloss = 0;
-	RGBAFormat.Amask = 0x000000FF; RGBAFormat.Ashift = 24; RGBAFormat.Aloss = 0;
-	#else
-	RGBAFormat.Rmask = 0x000000FF; RGBAFormat.Rshift = 24; RGBAFormat.Rloss = 0;
-	RGBAFormat.Gmask = 0x0000FF00; RGBAFormat.Gshift = 16; RGBAFormat.Gloss = 0;
-	RGBAFormat.Bmask = 0x00FF0000; RGBAFormat.Bshift = 8; RGBAFormat.Bloss = 0;
-	RGBAFormat.Amask = 0xFF000000; RGBAFormat.Ashift = 0; RGBAFormat.Aloss = 0;
-	#endif
-
-
-
-  // Create the target alpha surface with correct color component ordering 
-
-  SDL_Surface *alphaImage = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w,
- 	surface->h, 32,
-#if SDL_BYTEORDER == SDL_LIL_ENDIAN // OpenGL RGBA masks 
-   0x000000FF, 
-   0x0000FF00, 
-   0x00FF0000, 
-   0xFF000000
-#else
-   0xFF000000,
-   0x00FF0000, 
-   0x0000FF00, 
-   0x000000FF
-#endif
-  );
-  
-  if (alphaImage == 0)
-  	printf("ruh oh, alphaImage creation failed in loadGLTexture() (screen.c)\n");
-
-
-  // Set up so that colorkey pixels become transparent :
-  Uint32 colorkey = SDL_MapRGBA(alphaImage->format, 255, 255, 0, 0); //R=255, G=255, B=0
-  SDL_FillRect(alphaImage, 0, colorkey);
-
-  colorkey = SDL_MapRGBA(surface->format, 255, 255, 0, 0 );
-  SDL_SetColorKey(surface, SDL_SRCCOLORKEY, colorkey);
-
-
-  SDL_Rect area;
- 
-  // Copy the surface into the GL texture image : 
-  area.x = 0;
-  area.y = 0; 
-  area.w = surface->w;
-  area.h = surface->h;
-  SDL_BlitSurface(surface, &area, alphaImage, &area);
-
- // for (int i = 0; i < conv->w * conv->h; i++)
- // {
- //     
- // }
-
-  SDL_Surface *conv = SDL_ConvertSurface(surface, &RGBAFormat, SDL_SWSURFACE);
-
-//http://osdl.sourceforge.net/OSDL/OSDL-0.3/src/doc/web/main/documentation/rendering/SDL-openGL-examples.html
-//http://osdl.sourceforge.net/main/documentation/rendering/SDL-openGL.html --> Good explainations
-
-    // work out what format to tell glTexImage2D to use...
-    if (surface->format->BytesPerPixel == 3) { // RGB 24bit
-		mode = GL_RGB;
-    } else if (surface->format->BytesPerPixel == 4) { // RGBA 32bit
-        mode = GL_RGBA;
-    }
-    else {
-    	printf("loadGLTexture: Error: Weird RGB mode found in surface.\n");
-    	SDL_Quit();
-    }
-
-  //Disabled for gpu940
   glGenTextures(1, texture);
   glBindTexture(GL_TEXTURE_2D, *texture);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);//
-  //glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);//
-  //Disabled for gpu940
-  //gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);//
-  
-  if (surface == NULL)
-  {
-     printf("Error: surface NULL in loadGLTexture.\n");
-     SDL_Quit();
-  }
-  
-   //Added by Albert (somehow Kenta Cho managed to get OpenGL to render SDL textures, looks like)
-   glTexImage2D( GL_TEXTURE_2D, 0, mode, surface->w, surface->h, 0,
-                      mode, GL_UNSIGNED_BYTE, surface->pixels );
-                      
-   //Added by Albert
-   if (surface)
-      SDL_FreeSurface(surface);     
-   if (alphaImage)
-      SDL_FreeSurface(alphaImage);   
-   if (conv)
-      SDL_FreeSurface(conv);                      
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+  //gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
 }
-
-
-//senquack - 2/11 - disabled for now:
 void generateTexture(GLuint *texture) {
   glGenTextures(1, texture);
 }
 
-//senquack - 2/11 - disabled for now:
 void deleteTexture(GLuint *texture) {
   glDeleteTextures(1, texture);
 }
@@ -302,7 +201,6 @@ videoFlags = SDL_SWSURFACE;
 void closeSDL() {
 	//senquack
 //  SDL_ShowCursor(SDL_ENABLE);
-  //glClose();
 }
 
 float zoom = 15;
@@ -342,82 +240,76 @@ void moveScreenShake() {
 
 
 void drawGLSceneStart() {
+	XenonBeginGl();
   glClear(GL_COLOR_BUFFER_BIT);
   setEyepos();
 }
 
 void drawGLSceneEnd() {
+  XenonEndGl();
   glPopMatrix();
+
 }
 
 void swapGLScene() {
 	//SDL_GL_SwapBuffers();
 	//Switched to XenonGLDisplay() for xenos
-	XenonGLDisplay();
+	//XenonGLDisplay();
+  //XenonEndGl();
 }
 
 
-  //senquack - tried tweaking this to fix hang:
 void drawBox(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
 	     int r, int g, int b) {
   glPushMatrix();
   glTranslatef(x, y, 0);
-  glColor4hack(r, g, b, 128);
-
-
-  glBegin(GL_QUADS);
-  glVertex2f(-width, -height);
-  glVertex2f( width, -height);
-  glVertex2f( width,  height);
-  glVertex2f(-width,  height);
+  glColor4ub(r, g, b, 128);
+  glBegin(GL_TRIANGLE_FAN);
+  glVertex3f(-width, -height,  0);
+  glVertex3f( width, -height,  0);
+  glVertex3f( width,  height,  0);
+  glVertex3f(-width,  height,  0);
   glEnd();
-
-  glColor4hack(r, g, b, 255);
-
-
-
+  glColor4ub(r, g, b, 255);
+  glBegin(GL_LINE_LOOP);
+  glVertex3f(-width, -height,  0);
+  glVertex3f( width, -height,  0);
+  glVertex3f( width,  height,  0);
+  glVertex3f(-width,  height,  0);
+  glEnd();
   glPopMatrix();
 }
 
 void drawLine(GLfloat x1, GLfloat y1, GLfloat z1,
 	      GLfloat x2, GLfloat y2, GLfloat z2, int r, int g, int b, int a) {
-  glColor4hack(r, g, b,a);
-  glBegin(GL_LINE_LOOP);
+  glColor4ub(r, g, b, a);
+  glBegin(GL_LINES);
   glVertex3f(x1, y1, z1);
   glVertex3f(x2, y2, z2);
   glEnd();
 }
 
-
-//senquack - tried tweaking this to fix hang:
 void drawLinePart(GLfloat x1, GLfloat y1, GLfloat z1,
 		  GLfloat x2, GLfloat y2, GLfloat z2, int r, int g, int b, int a, int len) {
-  glColor4hack(r, g, b, a);
-
-  glBegin(GL_LINE_LOOP);
+  glColor4ub(r, g, b, a);
+  glBegin(GL_LINES);
   glVertex3f(x1, y1, z1);
   glVertex3f(x1+(x2-x1)*len/256, y1+(y2-y1)*len/256, z1+(z2-z1)*len/256);
   glEnd();
 }
 
-  //senquack - tried tweaking this to fix hang:
-//senquack - try changing this to LINE_LOOP to fix drawing problems:
-
 void drawRollLineAbs(GLfloat x1, GLfloat y1, GLfloat z1,
 		     GLfloat x2, GLfloat y2, GLfloat z2, int r, int g, int b, int a, int d1) {
   glPushMatrix();
   glRotatef((float)d1*360/1024, 0, 0, 1);
-  glColor4hack(r, g, b, a);
+  glColor4ub(r, g, b, a);
   glBegin(GL_LINES);
   glVertex3f(x1, y1, z1);
   glVertex3f(x2, y2, z2);
   glEnd();
-
   glPopMatrix();
 }
 
-//senquack - new - changing all TRIANGLE_FANs with only three vertices to TRIANGLES
-  //senquack - tried tweaking this to fix hang:
 
 void drawRollLine(GLfloat x, GLfloat y, GLfloat z, GLfloat width,
 		  int r, int g, int b, int a, int d1, int d2) {
@@ -425,8 +317,8 @@ void drawRollLine(GLfloat x, GLfloat y, GLfloat z, GLfloat width,
   glTranslatef(x, y, z);
   glRotatef((float)d1*360/1024, 0, 0, 1);
   glRotatef((float)d2*360/1024, 1, 0, 0);
-  glColor4hack(r, g, b, a);
-  glBegin(GL_LINE_LOOP);
+  glColor4ub(r, g, b, a);
+  glBegin(GL_LINES);
   glVertex3f(0, -width, 0);
   glVertex3f(0,  width, 0);
   glEnd();
@@ -438,7 +330,7 @@ void drawSquare(GLfloat x1, GLfloat y1, GLfloat z1,
 		GLfloat x3, GLfloat y3, GLfloat z3,
 		GLfloat x4, GLfloat y4, GLfloat z4,
 		int r, int g, int b) {
-  glColor4hack(r, g, b, 64);
+  glColor4ub(r, g, b, 64);
 
   glBegin(GL_TRIANGLE_FAN);
   glVertex3f(x1, y1, z1);
@@ -446,10 +338,8 @@ void drawSquare(GLfloat x1, GLfloat y1, GLfloat z1,
   glVertex3f(x3, y3, z3);
   glVertex3f(x4, y4, z4);
   glEnd();
-
 }
 
-//senquack - this was commented out:
 void drawStar(int f, GLfloat x, GLfloat y, GLfloat z, int r, int g, int b, float size) {
   glEnable(GL_TEXTURE_2D);
   if ( f ) {
@@ -457,7 +347,7 @@ void drawStar(int f, GLfloat x, GLfloat y, GLfloat z, int r, int g, int b, float
   } else {
     glBindTexture(GL_TEXTURE_2D, smokeTexture);
   }
-  glColor4hack(r, g, b, 255);
+  glColor4ub(r, g, b, 255);
   glPushMatrix();
   glTranslatef(x, y, z);
   glRotatef(rand()%360, 0.0f, 0.0f, 1.0f);
@@ -481,7 +371,6 @@ void drawStar(int f, GLfloat x, GLfloat y, GLfloat z, int r, int g, int b, float
 #define LASER_LINE_UP_SPEED 16
 
 
-//senquack - stripped-down triangle version:
 void drawLaser(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
 	       int cc1, int cc2, int cc3, int cc4, int cnt, int type) {
   int i, d;
@@ -489,18 +378,52 @@ void drawLaser(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
 
 
   glBegin(GL_TRIANGLE_FAN);
-  glColor4hack(cc2, 255, cc2, LASER_ALPHA);
-  glVertex2f(x, y);
-  glColor4hack(cc4, 255, cc4, LASER_ALPHA);
-  glVertex2f(x, y+height);
-  glColor4hack(cc3, cc3, cc3, LASER_ALPHA);
-  glVertex2f(x-width, y+height);
-  glColor4hack(cc2, 255, cc2, LASER_ALPHA);
-  glVertex2f(x, y);
-  glColor4hack(cc4, 255, cc4, LASER_ALPHA);
-  glVertex2f(x, y+height);
-  glColor4hack(cc3, cc3, cc3, LASER_ALPHA);
-  glVertex2f(x+width, y+height);
+  if ( type != 0 ) {
+    glColor4ub(cc1, cc1, cc1, LASER_ALPHA);
+    glVertex3f(x-width, y, 0);
+  }
+  glColor4ub(cc2, 255, cc2, LASER_ALPHA);
+  glVertex3f(x, y, 0);
+  glColor4ub(cc4, 255, cc4, LASER_ALPHA);
+  glVertex3f(x, y+height, 0);
+  glColor4ub(cc3, cc3, cc3, LASER_ALPHA);
+  glVertex3f(x-width, y+height, 0);
+  glEnd();
+  glBegin(GL_TRIANGLE_FAN);
+  if ( type != 0 ) {
+    glColor4ub(cc1, cc1, cc1, LASER_ALPHA);
+    glVertex3f(x+width, y, 0);
+  }
+  glColor4ub(cc2, 255, cc2, LASER_ALPHA);
+  glVertex3f(x, y, 0);
+  glColor4ub(cc4, 255, cc4, LASER_ALPHA);
+  glVertex3f(x, y+height, 0);
+  glColor4ub(cc3, cc3, cc3, LASER_ALPHA);
+  glVertex3f(x+width, y+height, 0);
+  glEnd();
+  if ( type == 2 ) return;
+  glColor4ub(80, 240, 80, LASER_LINE_ALPHA);
+  glBegin(GL_LINES);
+  d = (cnt*LASER_LINE_ROLL_SPEED)&(512/4-1);
+  for ( i=0 ; i<4 ; i++, d+=(512/4) ) {
+    d &= 1023;
+    gx = x + width*sctbl[d+256]/256.0f;
+    if ( type == 1 ) {
+      glVertex3f(gx, y, 0);
+    } else {
+      glVertex3f(x, y, 0);
+    }
+    glVertex3f(gx, y+height, 0);
+  }
+  if ( type == 0 ) {
+    glEnd();
+    return;
+  }
+  gy = y + (height/4/LASER_LINE_UP_SPEED) * (cnt&(LASER_LINE_UP_SPEED-1));
+  for ( i=0 ; i<4 ; i++, gy+=height/4 ) {
+    glVertex3f(x-width, gy, 0);
+    glVertex3f(x+width, gy, 0);
+  }
   glEnd();
 
 }
@@ -522,7 +445,7 @@ static void drawRing(GLfloat x, GLfloat y, int d1, int d2, int r, int g, int b) 
   glTranslatef(x, y, 0);
   glRotatef((float)d1*360/1024, 0, 0, 1);
   glRotatef((float)d2*360/1024, 1, 0, 0);
-  glColor4hack(r, g, b, 255);
+  glColor4ub(r, g, b, 255);
   x1 = x2 = 0;
   y1 = y4 =  CORE_HEIGHT/2;
   y2 = y3 = -CORE_HEIGHT/2;
@@ -544,13 +467,12 @@ void drawCore(GLfloat x, GLfloat y, int cnt, int r, int g, int b) {
   float cy;
   glPushMatrix();
   glTranslatef(x, y, 0);
-  glColor4hack(r, g, b, 255);
-
+  glColor4ub(r, g, b, 255);
   glBegin(GL_TRIANGLE_FAN);
-  glVertex2f(-SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L);
-  glVertex2f( SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L);
-  glVertex2f( SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L);
-  glVertex2f(-SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L);
+  glVertex3f(-SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L,  0);
+  glVertex3f( SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L,  0);
+  glVertex3f( SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
+  glVertex3f(-SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
   glEnd();
 
   glPopMatrix();
@@ -564,19 +486,16 @@ void drawCore(GLfloat x, GLfloat y, int cnt, int r, int g, int b) {
 #define SHIP_DRUM_WIDTH 0.05f
 #define SHIP_DRUM_HEIGHT 0.35f
 
-//senquack - one of the causes of freezing is the drawing of the rotating "drum" in this function
-//					and the way I found to fix it is changing GL_LINE_LOOP to GL_QUADS:
 void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
   int i;
   glPushMatrix();
   glTranslatef(x, y, 0);
-  glColor4hack(255, 100, 100, 255);
-
-  glBegin(GL_QUADS);
-  glVertex2f(-SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L);
-  glVertex2f( SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L);
-  glVertex2f( SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L);
-  glVertex2f(-SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L);
+  glColor4ub(255, 100, 100, 255);
+  glBegin(GL_TRIANGLE_FAN);
+  glVertex3f(-SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L,  0);
+  glVertex3f( SHAPE_POINT_SIZE_L, -SHAPE_POINT_SIZE_L,  0);
+  glVertex3f( SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
+  glVertex3f(-SHAPE_POINT_SIZE_L,  SHAPE_POINT_SIZE_L,  0);
   glEnd();
 
   if ( inv ) {
@@ -584,16 +503,15 @@ void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
     return;
   }
   glRotatef(d, 0, 1, 0);
-    glColor4hack(120, 220, 100, 150);
+    glColor4ub(120, 220, 100, 150);
     /*if ( mode == IKA_MODE ) {
-    glColor4hack(180, 200, 160, 150);
+    glColor4ub(180, 200, 160, 150);
   } else {
-    glColor4hack(120, 220, 100, 150);
+    glColor4ub(120, 220, 100, 150);
     }*/
   for ( i=0 ; i<8 ; i++ ) {
     glRotatef(45, 0, 1, 0);
-	 //senquack - freezing fix:
-    glBegin(GL_QUADS);
+    glBegin(GL_LINE_LOOP);
     glVertex3f(-SHIP_DRUM_WIDTH, -SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glVertex3f( SHIP_DRUM_WIDTH, -SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glVertex3f( SHIP_DRUM_WIDTH,  SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
@@ -603,7 +521,6 @@ void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
   glPopMatrix();
 }
 
-//senquack - converting to line strip for speed
 void drawBomb(GLfloat x, GLfloat y, GLfloat width, int cnt) {
   int i, d, od, c;
   GLfloat x1, y1, x2, y2;
@@ -613,17 +530,12 @@ void drawBomb(GLfloat x, GLfloat y, GLfloat width, int cnt) {
   x1 = (sctbl[d]    *width)/256 + x;
   y1 = (sctbl[d+256]*width)/256 + y;
 
-  glColor4hack(255, 255, 255, 255);
 
-  //senquack - converted this to one giant line strip instead of multiple calls to drawLine for speedup
-  glBegin(GL_LINE_STRIP);
-  glVertex2f(x1,y1);
   for ( i=0 ; i<c ; i++ ) {
     d += od; d &= 1023;
     x2 = (sctbl[d]    *width)/256 + x;
     y2 = (sctbl[d+256]*width)/256 + y;
-//    drawLine(x1, y1, 0, x2, y2, 0, 255, 255, 255, 255);
-    glVertex2f(x2, y2);
+    drawLine(x1, y1, 0, x2, y2, 0, 255, 255, 255, 255);
     x1 = x2; y1 = y2;
   }
   glEnd();
@@ -635,42 +547,39 @@ void drawCircle(GLfloat x, GLfloat y, GLfloat width, int cnt,
   int i, d;
   GLfloat x1, y1, x2, y2;
   if ( (cnt&1) == 0 ) {
-    glColor4hack(r1, g1, b1, 64);
+    glColor4ub(r1, g1, b1, 64);
   } else {
-    glColor4hack(255, 255, 255, 64);
+    glColor4ub(255, 255, 255, 64);
   }
   glBegin(GL_TRIANGLE_FAN);
-  glVertex2f(x, y);
+  glVertex3f(x, y, 0);
   d = cnt*48; d &= 1023;
   x1 = (sctbl[d]    *width)/256 + x;
   y1 = (sctbl[d+256]*width)/256 + y;
-  glColor4hack(r2, g2, b2, 150);
+  glColor4ub(r2, g2, b2, 150);
   for ( i=0 ; i<16 ; i++ ) {
     d += 64; d &= 1023;
     x2 = (sctbl[d]    *width)/256 + x;
     y2 = (sctbl[d+256]*width)/256 + y;
-    glVertex2f(x1, y1);
-    glVertex2f(x2, y2);
+    glVertex3f(x1, y1, 0);
+    glVertex3f(x2, y2, 0);
     x1 = x2; y1 = y2;
   }
   glEnd();
 }
 
-//senquack - new - found inconsistencies here.. TRIANGLE_FAN called with only three vertices.. changing 
 
 void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
 	       int r, int g, int b) {
   GLfloat sz, sz2;
   glPushMatrix();
   glTranslatef(x, y, 0);
-//  glColor4ub(r, g, b, 255);
-  glColor4hack(r, g, b, 255);
-  //senquack - converting to 2D for speed:
+  glColor4ub(r, g, b, 255);
   glBegin(GL_TRIANGLE_FAN);
-  glVertex2f(-SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE);
-  glVertex2f( SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE);
-  glVertex2f( SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE);
-  glVertex2f(-SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE);
+  glVertex3f(-SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE,  0);
+  glVertex3f( SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE,  0);
+  glVertex3f( SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE,  0);
+  glVertex3f(-SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE,  0);
   glEnd();
 
   switch ( type ) {
@@ -678,168 +587,150 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     sz = size/2;
     glRotatef((float)d*360/1024, 0, 0, 1);
 
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(-sz, -sz,  0);
-//    glVertex3f( sz, -sz,  0);
-//    glVertex3f( 0, size,  0);
-//    glEnd();
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz, -sz,  0);
+    glVertex3f( sz, -sz,  0);
+    glVertex3f( 0, size,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 150);
-	 //senquack - converting to 2D for speed:
+    glColor4ub(r, g, b, 150);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz, -sz);
-    glVertex2f( sz, -sz);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f( 0, size);
+    glVertex3f(-sz, -sz,  0);
+    glVertex3f( sz, -sz,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f( 0, size,  0);
     glEnd();
     break;
   case 1:
     sz = size/2;
     glRotatef((float)((cnt*23)&1023)*360/1024, 0, 0, 1);
 
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(  0, -size,  0);
-//    glVertex3f( sz,     0,  0);
-//    glVertex3f(  0,  size,  0);
-//    glVertex3f(-sz,     0,  0);
-//    glEnd();
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(  0, -size,  0);
+    glVertex3f( sz,     0,  0);
+    glVertex3f(  0,  size,  0);
+    glVertex3f(-sz,     0,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 180);
-	 //senquack - converting to 2D for speed:
+    glColor4ub(r, g, b, 180);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(  0, -size);
-    glVertex2f( sz,     0);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f(  0,  size);
-    glVertex2f(-sz,     0);
+    glVertex3f(  0, -size,  0);
+    glVertex3f( sz,     0,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f(  0,  size,  0);
+    glVertex3f(-sz,     0,  0);
     glEnd();
     break;
   case 2:
     sz = size/4; sz2 = size/3*2;
     glRotatef((float)d*360/1024, 0, 0, 1);
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(-sz, -sz2,  0);
-//    glVertex3f( sz, -sz2,  0);
-//    glVertex3f( sz,  sz2,  0);
-//    glVertex3f(-sz,  sz2,  0);
-//    glEnd();
-
-	 //senquack - converting to 2D for speed:
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz, -sz2,  0);
+    glVertex3f( sz, -sz2,  0);
+    glVertex3f( sz,  sz2,  0);
+    glVertex3f(-sz,  sz2,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 120);
+    glColor4ub(r, g, b, 120);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz, -sz2);
-    glVertex2f( sz, -sz2);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f( sz, sz2);
-    glVertex2f(-sz, sz2);
+    glVertex3f(-sz, -sz2,  0);
+    glVertex3f( sz, -sz2,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f( sz, sz2,  0);
+    glVertex3f(-sz, sz2,  0);
     glEnd();
     break;
   case 3:
     sz = size/2;
     glRotatef((float)((cnt*37)&1023)*360/1024, 0, 0, 1);
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(-sz, -sz,  0);
-//    glVertex3f( sz, -sz,  0);
-//    glVertex3f( sz,  sz,  0);
-//    glVertex3f(-sz,  sz,  0);
-//    glEnd();
-
-	 //senquack - converting to 2D for speed:
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz, -sz,  0);
+    glVertex3f( sz, -sz,  0);
+    glVertex3f( sz,  sz,  0);
+    glVertex3f(-sz,  sz,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 180);
+    glColor4ub(r, g, b, 180);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz, -sz);
-    glVertex2f( sz, -sz);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f( sz,  sz);
-    glVertex2f(-sz,  sz);
+    glVertex3f(-sz, -sz,  0);
+    glVertex3f( sz, -sz,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f( sz,  sz,  0);
+    glVertex3f(-sz,  sz,  0);
     glEnd();
     break;
   case 4:
     sz = size/2;
     glRotatef((float)((cnt*53)&1023)*360/1024, 0, 0, 1);
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(-sz/2, -sz,  0);
-//    glVertex3f( sz/2, -sz,  0);
-//    glVertex3f( sz,  -sz/2,  0);
-//    glVertex3f( sz,   sz/2,  0);
-//    glVertex3f( sz/2,  sz,  0);
-//    glVertex3f(-sz/2,  sz,  0);
-//    glVertex3f(-sz,   sz/2,  0);
-//    glVertex3f(-sz,  -sz/2,  0);
-//    glEnd();
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz/2, -sz,  0);
+    glVertex3f( sz/2, -sz,  0);
+    glVertex3f( sz,  -sz/2,  0);
+    glVertex3f( sz,   sz/2,  0);
+    glVertex3f( sz/2,  sz,  0);
+    glVertex3f(-sz/2,  sz,  0);
+    glVertex3f(-sz,   sz/2,  0);
+    glVertex3f(-sz,  -sz/2,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 220);
-
-	 //senquack - converting to 2D for speed:
+    glColor4ub(r, g, b, 220);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz/2, -sz);
-    glVertex2f( sz/2, -sz);
-    glVertex2f( sz,  -sz/2);
-    glVertex2f( sz,   sz/2);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f( sz/2,  sz);
-    glVertex2f(-sz/2,  sz);
-    glVertex2f(-sz,   sz/2);
-    glVertex2f(-sz,  -sz/2);
+    glVertex3f(-sz/2, -sz,  0);
+    glVertex3f( sz/2, -sz,  0);
+    glVertex3f( sz,  -sz/2,  0);
+    glVertex3f( sz,   sz/2,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f( sz/2,  sz,  0);
+    glVertex3f(-sz/2,  sz,  0);
+    glVertex3f(-sz,   sz/2,  0);
+    glVertex3f(-sz,  -sz/2,  0);
     glEnd();
     break;
   case 5:
     sz = size*2/3; sz2 = size/5;
     glRotatef((float)d*360/1024, 0, 0, 1);
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_STRIP);
-//    glVertex3f(-sz, -sz+sz2,  0);
-//    glVertex3f( 0, sz+sz2,  0);
-//    glVertex3f( sz, -sz+sz2,  0);
-//    glEnd();
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_STRIP);
+    glVertex3f(-sz, -sz+sz2,  0);
+    glVertex3f( 0, sz+sz2,  0);
+    glVertex3f( sz, -sz+sz2,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 150);
-	 //senquack - converting to 2D for speed:
+    glColor4ub(r, g, b, 150);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz, -sz+sz2);
-    glVertex2f( sz, -sz+sz2);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f( 0, sz+sz2);
+    glVertex3f(-sz, -sz+sz2,  0);
+    glVertex3f( sz, -sz+sz2,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f( 0, sz+sz2,  0);
     glEnd();
     break;
   case 6:
     sz = size/2;
     glRotatef((float)((cnt*13)&1023)*360/1024, 0, 0, 1);
-	 //senquack - no need for this
-//    glDisable(GL_BLEND);
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(-sz, -sz,  0);
-//    glVertex3f(  0, -sz,  0);
-//    glVertex3f( sz,   0,  0);
-//    glVertex3f( sz,  sz,  0);
-//    glVertex3f(  0,  sz,  0);
-//    glVertex3f(-sz,   0,  0);
-//    glEnd();
-
-	 //senquack - converting to 2D for speed:
+    glDisable(GL_BLEND);
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz, -sz,  0);
+    glVertex3f(  0, -sz,  0);
+    glVertex3f( sz,   0,  0);
+    glVertex3f( sz,  sz,  0);
+    glVertex3f(  0,  sz,  0);
+    glVertex3f(-sz,   0,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(r, g, b, 210);
+    glColor4ub(r, g, b, 210);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz, -sz);
-    glVertex2f(  0, -sz);
-    glVertex2f( sz,   0);
-    glColor4hack(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
-    glVertex2f( sz,  sz);
-    glVertex2f(  0,  sz);
-    glVertex2f(-sz,   0);
+    glVertex3f(-sz, -sz,  0);
+    glVertex3f(  0, -sz,  0);
+    glVertex3f( sz,   0,  0);
+    glColor4ub(SHAPE_BASE_COLOR_R, SHAPE_BASE_COLOR_G, SHAPE_BASE_COLOR_B, 150);
+    glVertex3f( sz,  sz,  0);
+    glVertex3f(  0,  sz,  0);
+    glVertex3f(-sz,   0,  0);
     glEnd();
     break;
   }
@@ -855,57 +746,61 @@ void drawShapeIka(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type, 
   GLfloat sz, sz2, sz3;
   glPushMatrix();
   glTranslatef(x, y, 0);
-  glColor4hack(ikaClr[c][0][0], ikaClr[c][0][1], ikaClr[c][0][2], 255);
+  glColor4ub(ikaClr[c][0][0], ikaClr[c][0][1], ikaClr[c][0][2], 255);
   glDisable(GL_BLEND);
 
-  //senquack - converting to 2D for speed
-  glBegin(GL_TRIANGLE_FAN);
-  glVertex2f(-SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE);
-  glVertex2f( SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE);
-  glVertex2f( SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE);
-  glVertex2f(-SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE);
+   glBegin(GL_TRIANGLE_FAN);
+  glVertex3f(-SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE,  0);
+  glVertex3f( SHAPE_POINT_SIZE, -SHAPE_POINT_SIZE,  0);
+  glVertex3f( SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE,  0);
+  glVertex3f(-SHAPE_POINT_SIZE,  SHAPE_POINT_SIZE,  0);
   glEnd();
-  glColor4hack(ikaClr[c][0][0], ikaClr[c][0][1], ikaClr[c][0][2], 255);
+  glColor4ub(ikaClr[c][0][0], ikaClr[c][0][1], ikaClr[c][0][2], 255);
   switch ( type ) {
   case 0:
     sz = size/2; sz2 = sz/3; sz3 = size*2/3;
     glRotatef((float)d*360/1024, 0, 0, 1);
-	 //senquack - no need for this
-//    glBegin(GL_LINE_LOOP);
-//    glVertex3f(-sz, -sz3,  0);
-//    glVertex3f( sz, -sz3,  0);
-//    glVertex3f( sz2, sz3,  0);
-//    glVertex3f(-sz2, sz3,  0);
-//    glEnd();
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz, -sz3,  0);
+    glVertex3f( sz, -sz3,  0);
+    glVertex3f( sz2, sz3,  0);
+    glVertex3f(-sz2, sz3,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(ikaClr[c][1][0], ikaClr[c][1][1], ikaClr[c][1][2], 250);
-
-	 //senquack - converting to 2D for speed
+    glColor4ub(ikaClr[c][1][0], ikaClr[c][1][1], ikaClr[c][1][2], 250);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz, -sz3);
-    glVertex2f( sz, -sz3);
-    glColor4hack(ikaClr[c][2][0], ikaClr[c][2][1], ikaClr[c][2][2], 250);
-    glVertex2f( sz2, sz3);
-    glVertex2f(-sz2, sz3);
+    glVertex3f(-sz, -sz3,  0);
+    glVertex3f( sz, -sz3,  0);
+    glColor4ub(ikaClr[c][2][0], ikaClr[c][2][1], ikaClr[c][2][2], 250);
+    glVertex3f( sz2, sz3,  0);
+    glVertex3f(-sz2, sz3,  0);
     glEnd();
     break;
   case 1:
     sz = size/2;
     glRotatef((float)((cnt*53)&1023)*360/1024, 0, 0, 1);
-	 //senquack - no need for this
+    glBegin(GL_LINE_LOOP);
+    glVertex3f(-sz/2, -sz,  0);
+    glVertex3f( sz/2, -sz,  0);
+    glVertex3f( sz,  -sz/2,  0);
+    glVertex3f( sz,   sz/2,  0);
+    glVertex3f( sz/2,  sz,  0);
+    glVertex3f(-sz/2,  sz,  0);
+    glVertex3f(-sz,   sz/2,  0);
+    glVertex3f(-sz,  -sz/2,  0);
+    glEnd();
     glEnable(GL_BLEND);
-    glColor4hack(ikaClr[c][1][0], ikaClr[c][1][1], ikaClr[c][1][2], 250);
-	 //senquack - converting to 2D for speed:
+    glColor4ub(ikaClr[c][1][0], ikaClr[c][1][1], ikaClr[c][1][2], 250);
     glBegin(GL_TRIANGLE_FAN);
-    glVertex2f(-sz/2, -sz);
-    glVertex2f( sz/2, -sz);
-    glVertex2f( sz,  -sz/2);
-    glVertex2f( sz,   sz/2);
-    glColor4hack(ikaClr[c][2][0], ikaClr[c][2][1], ikaClr[c][2][2], 250);
-    glVertex2f( sz/2,  sz);
-    glVertex2f(-sz/2,  sz);
-    glVertex2f(-sz,   sz/2);
-    glVertex2f(-sz,  -sz/2);
+    glVertex3f(-sz/2, -sz,  0);
+    glVertex3f( sz/2, -sz,  0);
+    glVertex3f( sz,  -sz/2,  0);
+    glVertex3f( sz,   sz/2,  0);
+    glColor4ub(ikaClr[c][2][0], ikaClr[c][2][1], ikaClr[c][2][2], 250);
+    glVertex3f( sz/2,  sz,  0);
+    glVertex3f(-sz/2,  sz,  0);
+    glVertex3f(-sz,   sz/2,  0);
+    glVertex3f(-sz,  -sz/2,  0);
     glEnd();
     break;
   }
@@ -927,28 +822,23 @@ void drawShot(GLfloat x, GLfloat y, GLfloat d, int c, float width, float height)
   glTranslatef(x, y, 0);
   glRotatef(d, 0, 0, 1);
 
-  //senquack - no need for this
-//  glColor4hack(shtClr[c][0][0], shtClr[c][0][1], shtClr[c][0][2], 240);
-//  glDisable(GL_BLEND);
-//  glBegin(GL_LINE_LOOP);
-//  glVertex2f(-width, -height);
-//  glVertex2f(-width,  height);
-//  glEnd();
-//  glBegin(GL_LINE_LOOP);
-//  glVertex2f( width, -height);
-//  glVertex2f( width,  height);
-//  glEnd();
-//  glEnable(GL_BLEND);
+  glColor4ub(shtClr[c][0][0], shtClr[c][0][1], shtClr[c][0][2], 240);
+  glDisable(GL_BLEND);
+  glBegin(GL_LINES);
+  glVertex3f(-width, -height, 0);
+  glVertex3f(-width,  height, 0);
+  glVertex3f( width, -height, 0);
+  glVertex3f( width,  height, 0);
+  glEnd();
+  glEnable(GL_BLEND);
 
-  glColor4hack(shtClr[c][1][0], shtClr[c][1][1], shtClr[c][1][2], 240);
-  //senquack
-  // 2D version (hopefully a tiny bit faster:)
+  glColor4ub(shtClr[c][1][0], shtClr[c][1][1], shtClr[c][1][2], 240);
   glBegin(GL_TRIANGLE_FAN);
-  glVertex2f(-width, -height);
-  glVertex2f( width, -height);
-  glColor4hack(shtClr[c][2][0], shtClr[c][2][1], shtClr[c][2][2], 240);
-  glVertex2f( width,  height);
-  glVertex2f(-width,  height);
+  glVertex3f(-width, -height, 0);
+  glVertex3f( width, -height, 0);
+  glColor4ub(shtClr[c][2][0], shtClr[c][2][1], shtClr[c][2][2], 240);
+  glVertex3f( width,  height, 0);
+  glVertex3f(-width,  height, 0);
   glEnd();
   glPopMatrix();
 }
@@ -957,7 +847,7 @@ void drawShot(GLfloat x, GLfloat y, GLfloat d, int c, float width, float height)
 void startDrawBoards() {
   glMatrixMode(GL_PROJECTION);
   //senquack - dunno why we do this
-//  glPushMatrix();
+  //glPushMatrix();
   glLoadIdentity();
   glOrtho(0, 640, 480, 0, -1, 1);
   glMatrixMode(GL_MODELVIEW);
@@ -971,46 +861,41 @@ void endDrawBoards() {
 }
 
 static void drawBoard(int x, int y, int width, int height) {
-  glColor4hack(0, 0, 0, 255);
-
-  //senquack
-  glBegin(GL_TRIANGLES);
-  glVertex3f(x,y,0);
-  glVertex3f(x+width,y,0);
-  glVertex3f(x+width,y+height,0);
-  glEnd();
-  glBegin(GL_TRIANGLES);
-  glVertex3f(x,y,0);
-  glVertex3f(x+width,y+height,0);
-  glVertex3f(x,y+height,0);
+  glColor4ub(0, 0, 0, 255);
+  glBegin(GL_QUADS);
+  glVertex2f(x,y);
+  glVertex2f(x+width,y);
+  glVertex2f(x+width,y+height);
+  glVertex2f(x,y+height);
   glEnd();
 }
 
 void drawSideBoards() {
-	//senquack - since we aren't drawing the background anymore, no need for these
   glDisable(GL_BLEND);
   drawBoard(0, 0, 160, 480);
   drawBoard(480, 0, 160, 480);
   glEnable(GL_BLEND);
-//
   drawScore();
   drawRPanel();
 }
 
 
-//senquack - 3rd try (lines are OK, triangles are way off)
 void drawTitleBoard() {
-  
-	//senquack
-//  printf("drawTitleBoard() start\n");
   glEnable(GL_TEXTURE_2D);
   glBindTexture(GL_TEXTURE_2D, titleTexture);
-  glColor4hack(255, 255, 255, 255);
-
-  glDisable(GL_TEXTURE_2D); //TODO: Make sure to uncomment this line if I fix texturing....
-  glColor4hack(200, 200, 200, 255);
-
-  //senquack - these two don't cause vertical stripes but the triangles are alllll messed up
+  glColor4ub(255, 255, 255, 255);
+  glBegin(GL_TRIANGLE_FAN);
+  glTexCoord2f(0.0f, 0.0f); 
+  glVertex3f(350, 78,  0);
+  glTexCoord2f(1.0f, 0.0f);
+  glVertex3f(470, 78,  0);
+  glTexCoord2f(1.0f, 1.0f);
+  glVertex3f(470, 114,  0);
+  glTexCoord2f(0.0f, 1.0f);
+  glVertex3f(350, 114,  0);
+  glEnd();
+  glDisable(GL_TEXTURE_2D);
+  glColor4ub(200, 200, 200, 255);
   glBegin(GL_TRIANGLE_FAN);
   glVertex3f(350, 30, 0);
   glVertex3f(400, 30, 0);
@@ -1026,29 +911,22 @@ void drawTitleBoard() {
   glVertex3f(465, 80, 0);
   glEnd();
 
-  glColor4hack(255, 255, 255, 255);
-
-  //senquack
+  glColor4ub(255, 255, 255, 255);
   glBegin(GL_LINE_LOOP);
-  glVertex2f(350, 30);
-  glVertex2f(400, 30);
-  glVertex2f(380, 56);
-  glVertex2f(380, 80);
-  glVertex2f(350, 80);
-  glVertex2f(350, 30);
+  glVertex3f(350, 30, 0);
+  glVertex3f(400, 30, 0);
+  glVertex3f(380, 56, 0);
+  glVertex3f(380, 80, 0);
+  glVertex3f(350, 80, 0);
   glEnd();
 
-  //senquack
   glBegin(GL_LINE_LOOP);
-  glVertex2f(404, 80);
-  glVertex2f(404, 8);
-  glVertex2f(440, 8);
-  glVertex2f(440, 44);
-  glVertex2f(465, 80);
-  glVertex2f(404, 80);
+  glVertex3f(404, 80, 0);
+  glVertex3f(404, 8, 0);
+  glVertex3f(440, 8, 0);
+  glVertex3f(440, 44, 0);
+  glVertex3f(465, 80, 0);
   glEnd();
-  //senquack
-//  printf("Done drawing drawTitleBoard\n"); fflush(stdout);
 }
 
 // Draw the numbers.

@@ -258,16 +258,15 @@ static void draw() {
 static int accframe = 0;
 
 static void usage(char *argv0) {
-  fprintf(stderr, "Usage: %s [-laser] [-nosound] [-reverse] [-nowait] [-accframe]\n", argv0);
+  fprintf(stderr, "Usage: %s [-laser] [-lowres] [-nosound] [-reverse] [-nowait] [-accframe]\n", argv0);
 }
 
 static void parseArgs(int argc, char *argv[]) {
   int i;
   for ( i=1 ; i<argc ; i++ ) {
-//    if ( strcmp(argv[i], "-lowres") == 0 ) {
-//      lowres = 1;
-//    } else if ( strcmp(argv[i], "-nosound") == 0 ) {
-    if ( strcmp(argv[i], "-nosound") == 0 ) {
+    if ( strcmp(argv[i], "-lowres") == 0 ) {
+      lowres = 1;
+    } else if ( strcmp(argv[i], "-nosound") == 0 ) {
       noSound = 1;
 //    } else if ( strcmp(argv[i], "-window") == 0 ) {
 //      windowMode = 1;
@@ -375,10 +374,6 @@ int main(int argc, char *argv[]) {
   long nowTick;
   int frame;
 
-  //senquack - for FPS computation
-  int fpsctr_oldticks = 0;
-  int fpsctr_newticks = 0;
-  int fpsctr_frames = 0;
 
 	//xenon
 	xenon_make_it_faster(XENON_SPEED_FULL);
@@ -438,9 +433,7 @@ http_output_start();
 		initGameover();
 	}
 	 
-//printf("checking framerate\n");
     nowTick = SDL_GetTicks();
-//printf("ticks: %l \n", nowTick);
     frame = (int)(nowTick-prvTickCount) / interval;
 	if ( frame <= 0 ) {
 		frame = 1;
@@ -462,15 +455,6 @@ http_output_start();
 		tick++;
 	}
 
-	 //senquack - display FPS so we can optimize
-	 fpsctr_frames++;
-	 fpsctr_newticks = SDL_GetTicks();
-	 if ((fpsctr_newticks - fpsctr_oldticks) >= 1000)
-	 {
-		 //printf("\nFPS: %d\n", fpsctr_frames);
-		 fpsctr_frames = 0;
-		 fpsctr_oldticks = fpsctr_newticks;
-	 }
 
 //printf("Starting to draw\n");
 //fflush(stdout);
@@ -484,10 +468,7 @@ http_output_start();
     swapGLScene();
 //printf("swapGLScene done\n");    
 
-	 //senquack - experiment
-	 //SDL_Delay(1);
   }
-//printf("variable \"done\": %d\n", done);
   quitLast();
   return 0;
 }
