@@ -29,17 +29,12 @@
 #include "background.h"
 #include "soundmanager.h"
 #include "attractmanager.h"
-#ifdef XENON
+#if defined(XENON)
 #include <xetypes.h>
 #include <xenos/xe.h>
 #include <xenos/xenos.h>
 #include <xenos/edram.h>
 #include <xenos/xenos.h>
-#include <threads/threads.h>
-//http remote screenshots
-#include "httpd.h"
-// for gdb
-#include <threads/gdb.h>
 #include <network/network.h>
 #include <libfat/fat.h>
 #include <usb/usbmain.h>
@@ -49,6 +44,13 @@
 #include <xenon_soc/xenon_power.h>
 #include <sys/iosupport.h>
 #include <xenon_sound/sound.h>
+//http remote screenshots
+#include "httpd.h"
+#if defined(THREADS)
+// for gdb
+#include <threads/threads.h>
+#include <threads/gdb.h>
+#endif
 #endif
 static int noSound = 0;
 
@@ -292,6 +294,7 @@ static void parseArgs(int argc, char *argv[]) {
     }
   }
 }
+#if defined(THREADS)
 unsigned int bail(unsigned int context)
 {
 	puts("Core 0: Shuting down threads\n");
@@ -359,7 +362,7 @@ void startbailthread()
 	thread_set_processor(bailthread, 3);
 	thread_resume(bailthread);
 }
-
+#endif
 int interval = INTERVAL_BASE;
 int tick = 0;
 static int pPrsd = 1;
@@ -374,28 +377,31 @@ int main(int argc, char *argv[]) {
   long nowTick;
   int frame;
 
-
+#if defined(XENON)
 	//xenon
 	xenon_make_it_faster(XENON_SPEED_FULL);
 	xenos_init(VIDEO_MODE_AUTO);
+#if defined(THREADS)
 	threading_init();
 //	for GDB
 	network_init();
 	gdb_init();
-	//for debug on screen with no uart
-	//console_init();
+	startbailthread();
+#else
+	network_init();
+	http_output_start();
+#endif
     xenon_sound_init();
-    
-	// xenon usb	
+ 	// xenon usb	
 	usb_init();
 	xenon_ata_init();
 	usb_do_poll();
 	fatInitDefault();
-//debug shite
-startbailthread();
-http_output_start();
-
+	//for debug on screen with no uart
+	//console_init();
+#else
   parseArgs(argc, argv);
+#endif
 
   initDegutil();
   printf("Init SDL\n");

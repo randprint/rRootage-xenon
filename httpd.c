@@ -700,10 +700,10 @@ void http_thread() {
 }
 
 void http_output_start() {	
-	//xenon_run_thread_task(4, stack - 0x1000, http_thread);
-	PTHREAD httpthread = thread_create(http_thread, 0x10000 - 0x1000, 0, THREAD_FLAG_CREATE_SUSPENDED);  
-	thread_set_name(httpthread, "httpthread");
-	thread_set_processor(httpthread, 4);
-	thread_resume(httpthread);               
+	xenon_run_thread_task(4, stack - 0x1000, http_thread);
+	//PTHREAD httpthread = thread_create(http_thread, 0x10000 - 0x1000, 0, THREAD_FLAG_CREATE_SUSPENDED);  
+	//thread_set_name(httpthread, "httpthread");
+	//thread_set_processor(httpthread, 4);
+	//thread_resume(httpthread);               
 
 }

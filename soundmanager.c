@@ -130,9 +130,9 @@ void initSound() {
 //  audio_format = AUDIO_S16;
 //  audio_channels = 1;
 //  audio_buffers = 4096;
-  audio_rate = 22050;
+  audio_rate = 48000;
   audio_format = AUDIO_S16MSB;
-  audio_channels = 1;
+  audio_channels = 2;
   audio_buffers = 2048;
 
   if (Mix_OpenAudio(audio_rate, audio_format, audio_channels, audio_buffers) < 0) {

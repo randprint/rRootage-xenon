@@ -36,12 +36,10 @@ rr.o: rr.c /usr/local/xenon/usr/include/SDL/SDL.h \
  /usr/local/xenon/usr/include/gl/gl.h vector.h foe_mtd.h brgmng_mtd.h \
  degutil.h boss_mtd.h ship.h laser.h frag.h shot.h background.h \
  soundmanager.h attractmanager.h \
- /usr/local/xenon/usr/include/threads/threads.h httpd.h \
- /usr/local/xenon/usr/include/threads/gdb.h \
  /usr/local/xenon/usr/include/network/network.h \
- /usr/local/xenon/usr/include/lwipopts.h \
  /usr/local/xenon/usr/include/lwip/netif.h \
  /usr/local/xenon/usr/include/lwip/opt.h \
+ /usr/local/xenon/usr/include/lwipopts.h \
  /usr/local/xenon/usr/include/lwip/debug.h \
  /usr/local/xenon/usr/include/lwip/arch.h \
  /usr/local/xenon/usr/include/arch/cc.h \
@@ -58,7 +56,7 @@ rr.o: rr.c /usr/local/xenon/usr/include/SDL/SDL.h \
  /usr/local/xenon/usr/include/diskio/disc_io.h \
  /usr/local/xenon/usr/include/sys/iosupport.h \
  /usr/local/xenon/usr/include/sys/statvfs.h \
- /usr/local/xenon/usr/include/xenon_sound/sound.h
+ /usr/local/xenon/usr/include/xenon_sound/sound.h httpd.h
 
 /usr/local/xenon/usr/include/SDL/SDL.h:
 
@@ -160,19 +158,13 @@ soundmanager.h:
 
 attractmanager.h:
 
-/usr/local/xenon/usr/include/threads/threads.h:
-
-httpd.h:
-
-/usr/local/xenon/usr/include/threads/gdb.h:
-
 /usr/local/xenon/usr/include/network/network.h:
-
-/usr/local/xenon/usr/include/lwipopts.h:
 
 /usr/local/xenon/usr/include/lwip/netif.h:
 
 /usr/local/xenon/usr/include/lwip/opt.h:
+
+/usr/local/xenon/usr/include/lwipopts.h:
 
 /usr/local/xenon/usr/include/lwip/debug.h:
 
@@ -207,3 +199,5 @@ httpd.h:
 /usr/local/xenon/usr/include/sys/statvfs.h:
 
 /usr/local/xenon/usr/include/xenon_sound/sound.h:
+
+httpd.h:
