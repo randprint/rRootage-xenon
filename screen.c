@@ -28,6 +28,7 @@
 #include "letterrender.h"
 #include "boss_mtd.h"
 
+//#define FAR_PLANE 720
 #define FAR_PLANE 720
 
 #define SCREEN_WIDTH 1280
@@ -43,8 +44,9 @@ static void screenResized() {
   glViewport(0, 0, screenWidth, screenHeight);
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
-  gluPerspective(45.0f, (GLfloat)screenWidth/(GLfloat)screenHeight, 0.1f, FAR_PLANE);
-  glMatrixMode(GL_MODELVIEW);
+  
+	gluPerspective(45.0f, (GLfloat)screenWidth/(GLfloat)screenHeight, 0.1f, FAR_PLANE);
+	glMatrixMode(GL_MODELVIEW);
 }
 
 void resized(int width, int height) {
@@ -102,20 +104,121 @@ void loadGLTexture(char *fileName, GLuint *texture)
   strcat(name, "images/");
   strcat(name, fileName);
 
-  surface = SDL_LoadBMP(name);
+  //surface = SDL_LoadBMP(name);
+  surface = IMG_Load(name); //Changed by Albert... this will load any image (hopefully transparent PNGs)
   if ( !surface ) {
     fprintf(stderr, "Unable to load texture: %s\n", SDL_GetError());
     SDL_Quit();
     exit(1);
   }
   
+  surface = conv_surf_gl(surface, surface->format->Amask || (surface->flags & SDL_SRCCOLORKEY));
+
+
+	//Attempted hackery to make transparencies/color-keying work - Albert
+	SDL_PixelFormat RGBAFormat;
+	RGBAFormat.palette = 0; RGBAFormat.colorkey = 0; RGBAFormat.alpha = 0;
+	RGBAFormat.BitsPerPixel = 32; RGBAFormat.BytesPerPixel = 4;
+	#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+	RGBAFormat.Rmask = 0xFF000000; RGBAFormat.Rshift = 0; RGBAFormat.Rloss = 0;
+	RGBAFormat.Gmask = 0x00FF0000; RGBAFormat.Gshift = 8; RGBAFormat.Gloss = 0;
+	RGBAFormat.Bmask = 0x0000FF00; RGBAFormat.Bshift = 16; RGBAFormat.Bloss = 0;
+	RGBAFormat.Amask = 0x000000FF; RGBAFormat.Ashift = 24; RGBAFormat.Aloss = 0;
+	#else
+	RGBAFormat.Rmask = 0x000000FF; RGBAFormat.Rshift = 24; RGBAFormat.Rloss = 0;
+	RGBAFormat.Gmask = 0x0000FF00; RGBAFormat.Gshift = 16; RGBAFormat.Gloss = 0;
+	RGBAFormat.Bmask = 0x00FF0000; RGBAFormat.Bshift = 8; RGBAFormat.Bloss = 0;
+	RGBAFormat.Amask = 0xFF000000; RGBAFormat.Ashift = 0; RGBAFormat.Aloss = 0;
+	#endif
+
+
+
+  // Create the target alpha surface with correct color component ordering 
+
+  SDL_Surface *alphaImage = SDL_CreateRGBSurface( SDL_SWSURFACE, surface->w,
+ 	surface->h, 32,
+#if SDL_BYTEORDER == SDL_LIL_ENDIAN // OpenGL RGBA masks 
+   0x000000FF, 
+   0x0000FF00, 
+   0x00FF0000, 
+   0xFF000000
+#else
+   0xFF000000,
+   0x00FF0000, 
+   0x0000FF00, 
+   0x000000FF
+#endif
+  );
+  
+  if (alphaImage == 0)
+  	printf("ruh oh, alphaImage creation failed in loadGLTexture() (screen.c)\n");
+
+
+  // Set up so that colorkey pixels become transparent :
+  Uint32 colorkey = SDL_MapRGBA(alphaImage->format, 255, 255, 0, 0); //R=255, G=255, B=0
+  SDL_FillRect(alphaImage, 0, colorkey);
+
+  colorkey = SDL_MapRGBA(surface->format, 255, 255, 0, 0 );
+  SDL_SetColorKey(surface, SDL_SRCCOLORKEY, colorkey);
+
+
+  SDL_Rect area;
+ 
+  // Copy the surface into the GL texture image : 
+  area.x = 0;
+  area.y = 0; 
+  area.w = surface->w;
+  area.h = surface->h;
+  SDL_BlitSurface(surface, &area, alphaImage, &area);
+
+ // for (int i = 0; i < conv->w * conv->h; i++)
+ // {
+ //     
+ // }
+
+  SDL_Surface *conv = SDL_ConvertSurface(surface, &RGBAFormat, SDL_SWSURFACE);
+
+//http://osdl.sourceforge.net/OSDL/OSDL-0.3/src/doc/web/main/documentation/rendering/SDL-openGL-examples.html
+//http://osdl.sourceforge.net/main/documentation/rendering/SDL-openGL.html --> Good explainations
+
+    // work out what format to tell glTexImage2D to use...
+    if (surface->format->BytesPerPixel == 3) { // RGB 24bit
+		mode = GL_RGB;
+    } else if (surface->format->BytesPerPixel == 4) { // RGBA 32bit
+        mode = GL_RGBA;
+    }
+    else {
+    	printf("loadGLTexture: Error: Weird RGB mode found in surface.\n");
+    	SDL_Quit();
+    }
 
   glGenTextures(1, texture);
   glBindTexture(GL_TEXTURE_2D, *texture);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
   //gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
+	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, surface->w, surface->h, 0, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
+
+  if (surface == NULL)
+  {
+     printf("Error: surface NULL in loadGLTexture.\n");
+     SDL_Quit();
+  }
+  
+   //Added by Albert (somehow Kenta Cho managed to get OpenGL to render SDL textures, looks like)
+   glTexImage2D( GL_TEXTURE_2D, 0, mode, surface->w, surface->h, 0,
+                      mode, GL_UNSIGNED_BYTE, surface->pixels );
+                      
+   //Added by Albert
+   if (surface)
+      SDL_FreeSurface(surface);     
+   if (alphaImage)
+      SDL_FreeSurface(alphaImage);   
+   if (conv)
+      SDL_FreeSurface(conv);
+
 }
+
 void generateTexture(GLuint *texture) {
   glGenTextures(1, texture);
 }
@@ -203,7 +306,7 @@ void closeSDL() {
 //  SDL_ShowCursor(SDL_ENABLE);
 }
 
-float zoom = 15;
+float zoom = 18;//15;
 static int screenShakeCnt = 0;
 static int screenShakeType = 0;
 
@@ -856,8 +959,9 @@ void startDrawBoards() {
 }
 
 void endDrawBoards() {
-  glPopMatrix();
-  screenResized();
+	glPopMatrix();
+	//really?
+	screenResized();
 }
 
 static void drawBoard(int x, int y, int width, int height) {

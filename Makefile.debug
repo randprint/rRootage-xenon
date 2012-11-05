@@ -30,7 +30,7 @@ DEFAULT_CFLAGS = -I"$(DEVKITXENON)/usr/include" -I"$(DEVKITXENON)/usr/include/SD
 # WORKING TREMOR:
 LDFLAGS        =  		$(MACHDEP) -L. /usr/local/xenon/usr/lib/libxenon.a -L/usr/local/xenon/usr/lib \
 						-n -T /usr/local/xenon/app.lds -lgl -lbulletml -lstdc++ \
-                        -static -lSDL_image -ljpeg -lpng -lz -lfat -lSDL_mixer -lvorbisfile -lvorbis -logg -lSDL \
+                        -static -lSDL_image -ljpeg -lpng -lz -lfat -lSDL_mixer -lvorbisidec -logg -lSDL \
                         -lgcc -lxenon -lm -lc -DLIBXENON -g3 -O0 -DXENON -ffunction-sections -fdata-sections -fno-pic -mpowerpc64 -mhard-float -Wall -m32 -fno-pic -mpowerpc64 
 
 
@@ -58,9 +58,8 @@ OBJS =	$(NAME).$(O) \
 	foe.$(O) foecommand.$(O) barragemanager.$(O) boss.$(O) ship.$(O) laser.$(O) \
 	frag.$(O) background.$(O) letterrender.$(O) shot.$(O) \
 	screen.$(O) vector.$(O) degutil.$(O) rand.$(O) mt19937int.$(O) \
-	soundmanager.$(O) attractmanager.$(O) 
-	# \
-	#$(NAME)_res.$(O)
+	soundmanager.$(O) attractmanager.$(O) screencapture.$(O) \
+	httpd.$(O)
 
 $(PROG): $(OBJS)
 	$(CC) $(CFLAGS) -o ./$(PROG) ./$(OBJS) $(LDFLAGS)

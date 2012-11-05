@@ -65,7 +65,6 @@ static void initFirst() {
   initAttractManager();
   if ( !noSound ) initSound();
   initGameStateFirst();
-  //printf("initFirst: Done\n");
 }
 
 // Quit and save preference.
@@ -104,33 +103,19 @@ void initTitle() {
 void initGame(int stg) {
   int sn;
   status = IN_GAME;
-	//printf("initGame1\n");
   initBoss();
-	//printf("initGame2\n");
   initFoes();
-	//printf("initGame3\n");
   initShip();
-	//printf("initGame4\n");
   initLasers();
-	//printf("initGame5\n");
   initFrags();
-	//printf("initGame6\n");
   initShots();
-	//printf("initGame7\n");
   initGameState(stg);
-	//printf("initGame8\n");
   sn = stg%SAME_RANK_STAGE_NUM;
-	//printf("initGame9\n");
   initBackground(sn);
-	//printf("initGame10\n");
   if ( sn == SAME_RANK_STAGE_NUM-1 ) {
-	//printf("initGame11\n");
     playMusic(rand()%(SAME_RANK_STAGE_NUM-1));
-	//printf("initGame12\n");
   } else {
-	//printf("initGame13\n");
     playMusic(sn);
-	//printf("initGame14\n");
   }
 }
 
@@ -142,7 +127,6 @@ void initGameover() {
 static void move() {
   switch ( status ) {
   case TITLE:
-//    printf("move(): TITLE\n");
     moveTitleMenu();
     moveBoss();
     moveFoes();
@@ -150,7 +134,6 @@ static void move() {
     break;
   case IN_GAME:
   case STAGE_CLEAR:
- //   printf("move(): move in game\n");
     moveShip();
     moveBoss();
     moveLasers();
@@ -160,7 +143,6 @@ static void move() {
     moveBackground();
     break;
   case GAMEOVER:
- //   printf("move(): move GAMEOVER\n");
     moveGameover();
     moveBoss();
     moveFoes();
@@ -168,8 +150,7 @@ static void move() {
     moveBackground();
     break;
   case PAUSE:
-  //  printf("move(): move PAUSE\n");
-    movePause();
+     movePause();
     break;
   }
   moveScreenShake();
@@ -180,38 +161,18 @@ static void move() {
 static void draw() {
   switch ( status ) {
   case TITLE:
-  	//printf("draw(): Drawing TITLE\n");
-  	//printf("draw(): Drawing TITLE - drawBackground\n");
     drawBackground();
-   // printf("draw(): Drawing TITLE - drawBoss\n");
     drawBoss();
-  //  printf("draw(): Drawing TITLE - drawBulletsWake\n");
     drawBulletsWake();
-    
-    //TODO: FIX CRASH IN drawBulletsWake() !!!!!!!!!!!!!!!!! **********
-    // When drawBulletsWake used (or buttons pushed), it crashes?
-    
-    
-   // printf("draw(): Drawing TITLE - drawBullets\n");
     drawBullets();
-  //  printf("draw(): Drawing TITLE - startDrawBoards\n");
     startDrawBoards();
- //   printf("draw(): Drawing TITLE - drawSideBoards\n");
     drawSideBoards();
-   // printf("draw(): Drawing TITLE - drawTitle\n");
     drawTitle();
-   // printf("draw(): Drawing TITLE - endDrawBoards\n");
     endDrawBoards();
-  //  printf("draw(): Drawing TITLE - drawTestPoly\n");
-//    drawTestPoly();
     break;
   case IN_GAME:
   case STAGE_CLEAR:
-	 //senquack
-  	//printf("draw(): Drawing STAGE_CLEAR\n");
     drawBackground();
-	 // NOTE - senquack: just drawShip and drawBullets here fixes freezes, enabling drawBoss
-	 //		causes freezing very quickly
     drawBoss();
     drawLasers();
     drawShots();
@@ -225,8 +186,6 @@ static void draw() {
     endDrawBoards();
     break;
   case GAMEOVER:
-	 //senquack
-  	//printf("draw(): Drawing GAMEOVER\n");
     drawBackground();
     drawBoss();
     drawBulletsWake();
@@ -238,8 +197,6 @@ static void draw() {
     endDrawBoards();
     break;
   case PAUSE:
-	 //senquack
-  	//printf("draw(): Drawing PAUSE\n");
     drawBackground();
     drawBoss();
     drawLasers();
@@ -275,13 +232,6 @@ static void parseArgs(int argc, char *argv[]) {
     } else if ( strcmp(argv[i], "-reverse") == 0 ) {
       buttonReversed = 1;
     }
-    /* else if ( (strcmp(argv[i], "-brightness") == 0) && argv[i+1] ) {
-      i++;
-      brightness = (int)atoi(argv[i]);
-      if ( brightness < 0 || brightness > 256 ) {
-	brightness = DEFAULT_BRIGHTNESS;
-      }
-      }*/ 
     else if ( strcmp(argv[i], "-nowait") == 0 ) {
       nowait = 1;
     } else if ( strcmp(argv[i], "-accframe") == 0 ) {
@@ -363,6 +313,7 @@ void startbailthread()
 	thread_resume(bailthread);
 }
 #endif
+
 int interval = INTERVAL_BASE;
 int tick = 0;
 static int pPrsd = 1;
@@ -381,16 +332,18 @@ int main(int argc, char *argv[]) {
 	//xenon
 	xenon_make_it_faster(XENON_SPEED_FULL);
 	xenos_init(VIDEO_MODE_AUTO);
-#if defined(THREADS)
+#endif
+#if defined(THREADS) && defined (XENON)
 	threading_init();
 //	for GDB
 	network_init();
 	gdb_init();
 	startbailthread();
-#else
+#elif defined (XENON)
 	network_init();
 	http_output_start();
 #endif
+#if defined(XENON)
     xenon_sound_init();
  	// xenon usb	
 	usb_init();
@@ -400,8 +353,8 @@ int main(int argc, char *argv[]) {
 	//for debug on screen with no uart
 	//console_init();
 #else
-  parseArgs(argc, argv);
 #endif
+  parseArgs(argc, argv);
 
   initDegutil();
   printf("Init SDL\n");
@@ -411,16 +364,8 @@ int main(int argc, char *argv[]) {
   printf("initTitle\n");
   initTitle();
 
-  //senquack
-//printf("Init title done\n");
-//fflush(stdout);
-
   while ( !done ) {
-//printf("Starting to poll\n");
     SDL_PollEvent(&event);
-//printf("poll done\n");
-	//senquack - Quitting is handled from the main menu.  The quit button merely exits to the
-	//				main menu and that logic is handled elsewhere now.
 	if ( SDL_JoystickGetButton(stick, GP2X_BUTTON_START)) {
 		if ( !pPrsd ) {
 			if ( status == IN_GAME ) {
@@ -461,18 +406,11 @@ int main(int argc, char *argv[]) {
 		tick++;
 	}
 
-
 //printf("Starting to draw\n");
-//fflush(stdout);
-
     drawGLSceneStart();
-//printf("drawGLSceneStart done\n");
     draw();
-//printf("draw done\n");    
     drawGLSceneEnd();
-//printf("drawGLSceneEnd done\n");    
     swapGLScene();
-//printf("swapGLScene done\n");    
 
   }
   quitLast();
