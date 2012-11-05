@@ -306,7 +306,7 @@ void closeSDL() {
 //  SDL_ShowCursor(SDL_ENABLE);
 }
 
-float zoom = 18;//15;
+float zoom = 20;//15;
 static int screenShakeCnt = 0;
 static int screenShakeType = 0;
 
@@ -374,11 +374,12 @@ void drawBox(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
   glVertex3f(-width,  height,  0);
   glEnd();
   glColor4ub(r, g, b, 255);
-  glBegin(GL_LINE_LOOP);
+  glBegin(GL_LINE_STRIP);
   glVertex3f(-width, -height,  0);
   glVertex3f( width, -height,  0);
   glVertex3f( width,  height,  0);
   glVertex3f(-width,  height,  0);
+  glVertex3f(-width, -height,  0);
   glEnd();
   glPopMatrix();
 }
@@ -614,11 +615,12 @@ void drawShipShape(GLfloat x, GLfloat y, float d, int inv) {
     }*/
   for ( i=0 ; i<8 ; i++ ) {
     glRotatef(45, 0, 1, 0);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-SHIP_DRUM_WIDTH, -SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glVertex3f( SHIP_DRUM_WIDTH, -SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glVertex3f( SHIP_DRUM_WIDTH,  SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glVertex3f(-SHIP_DRUM_WIDTH,  SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
+    glVertex3f(-SHIP_DRUM_WIDTH, -SHIP_DRUM_HEIGHT, SHIP_DRUM_R);
     glEnd();
   }
   glPopMatrix();
@@ -691,11 +693,12 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     glRotatef((float)d*360/1024, 0, 0, 1);
 
     glDisable(GL_BLEND);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz, -sz,  0);
     glVertex3f( sz, -sz,  0);
     glVertex3f( 0, size,  0);
-    glEnd();
+     glVertex3f(-sz, -sz,  0);
+   glEnd();
     glEnable(GL_BLEND);
     glColor4ub(r, g, b, 150);
     glBegin(GL_TRIANGLE_FAN);
@@ -710,11 +713,12 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     glRotatef((float)((cnt*23)&1023)*360/1024, 0, 0, 1);
 
     glDisable(GL_BLEND);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(  0, -size,  0);
     glVertex3f( sz,     0,  0);
     glVertex3f(  0,  size,  0);
     glVertex3f(-sz,     0,  0);
+    glVertex3f(  0, -size,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(r, g, b, 180);
@@ -730,11 +734,12 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     sz = size/4; sz2 = size/3*2;
     glRotatef((float)d*360/1024, 0, 0, 1);
     glDisable(GL_BLEND);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz, -sz2,  0);
     glVertex3f( sz, -sz2,  0);
     glVertex3f( sz,  sz2,  0);
     glVertex3f(-sz,  sz2,  0);
+    glVertex3f(-sz, -sz2,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(r, g, b, 120);
@@ -750,11 +755,12 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     sz = size/2;
     glRotatef((float)((cnt*37)&1023)*360/1024, 0, 0, 1);
     glDisable(GL_BLEND);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz, -sz,  0);
     glVertex3f( sz, -sz,  0);
     glVertex3f( sz,  sz,  0);
     glVertex3f(-sz,  sz,  0);
+    glVertex3f(-sz, -sz,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(r, g, b, 180);
@@ -770,7 +776,7 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     sz = size/2;
     glRotatef((float)((cnt*53)&1023)*360/1024, 0, 0, 1);
     glDisable(GL_BLEND);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz/2, -sz,  0);
     glVertex3f( sz/2, -sz,  0);
     glVertex3f( sz,  -sz/2,  0);
@@ -779,6 +785,7 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     glVertex3f(-sz/2,  sz,  0);
     glVertex3f(-sz,   sz/2,  0);
     glVertex3f(-sz,  -sz/2,  0);
+    glVertex3f(-sz/2, -sz,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(r, g, b, 220);
@@ -816,13 +823,14 @@ void drawShape(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type,
     sz = size/2;
     glRotatef((float)((cnt*13)&1023)*360/1024, 0, 0, 1);
     glDisable(GL_BLEND);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz, -sz,  0);
     glVertex3f(  0, -sz,  0);
     glVertex3f( sz,   0,  0);
     glVertex3f( sz,  sz,  0);
     glVertex3f(  0,  sz,  0);
     glVertex3f(-sz,   0,  0);
+    glVertex3f(-sz, -sz,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(r, g, b, 210);
@@ -863,11 +871,12 @@ void drawShapeIka(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type, 
   case 0:
     sz = size/2; sz2 = sz/3; sz3 = size*2/3;
     glRotatef((float)d*360/1024, 0, 0, 1);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz, -sz3,  0);
     glVertex3f( sz, -sz3,  0);
     glVertex3f( sz2, sz3,  0);
     glVertex3f(-sz2, sz3,  0);
+    glVertex3f(-sz, -sz3,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(ikaClr[c][1][0], ikaClr[c][1][1], ikaClr[c][1][2], 250);
@@ -882,7 +891,7 @@ void drawShapeIka(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type, 
   case 1:
     sz = size/2;
     glRotatef((float)((cnt*53)&1023)*360/1024, 0, 0, 1);
-    glBegin(GL_LINE_LOOP);
+    glBegin(GL_LINE_STRIP);
     glVertex3f(-sz/2, -sz,  0);
     glVertex3f( sz/2, -sz,  0);
     glVertex3f( sz,  -sz/2,  0);
@@ -891,6 +900,7 @@ void drawShapeIka(GLfloat x, GLfloat y, GLfloat size, int d, int cnt, int type, 
     glVertex3f(-sz/2,  sz,  0);
     glVertex3f(-sz,   sz/2,  0);
     glVertex3f(-sz,  -sz/2,  0);
+    glVertex3f(-sz/2, -sz,  0);
     glEnd();
     glEnable(GL_BLEND);
     glColor4ub(ikaClr[c][1][0], ikaClr[c][1][1], ikaClr[c][1][2], 250);
@@ -1016,20 +1026,23 @@ void drawTitleBoard() {
   glEnd();
 
   glColor4ub(255, 255, 255, 255);
-  glBegin(GL_LINE_LOOP);
+  glBegin(GL_LINE_STRIP);
   glVertex3f(350, 30, 0);
   glVertex3f(400, 30, 0);
   glVertex3f(380, 56, 0);
   glVertex3f(380, 80, 0);
   glVertex3f(350, 80, 0);
+  glVertex3f(350, 30, 0);
+  glVertex3f(350, 30, 0);
   glEnd();
 
-  glBegin(GL_LINE_LOOP);
+  glBegin(GL_LINE_STRIP);
   glVertex3f(404, 80, 0);
   glVertex3f(404, 8, 0);
   glVertex3f(440, 8, 0);
   glVertex3f(440, 44, 0);
   glVertex3f(465, 80, 0);
+  glVertex3f(404, 80, 0);
   glEnd();
 }
 
