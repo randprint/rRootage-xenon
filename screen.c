@@ -192,30 +192,29 @@ void loadGLTexture(char *fileName, GLuint *texture)
     	SDL_Quit();
     }
 
-  glGenTextures(1, texture);
-  glBindTexture(GL_TEXTURE_2D, *texture);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
-  //gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
-	glTexImage2D (GL_TEXTURE_2D, 0, GL_RGB, surface->w, surface->h, 0, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
-
+	glGenTextures(1, texture);
+	glBindTexture(GL_TEXTURE_2D, *texture);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+	//gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
+	
   if (surface == NULL)
   {
      printf("Error: surface NULL in loadGLTexture.\n");
      SDL_Quit();
   }
   
-   //Added by Albert (somehow Kenta Cho managed to get OpenGL to render SDL textures, looks like)
-   glTexImage2D( GL_TEXTURE_2D, 0, mode, surface->w, surface->h, 0,
-                      mode, GL_UNSIGNED_BYTE, surface->pixels );
-                      
-   //Added by Albert
-   if (surface)
-      SDL_FreeSurface(surface);     
-   if (alphaImage)
-      SDL_FreeSurface(alphaImage);   
-   if (conv)
-      SDL_FreeSurface(conv);
+	//Added by Albert (somehow Kenta Cho managed to get OpenGL to render SDL textures, looks like)
+	glTexImage2D( GL_TEXTURE_2D, 0, mode, surface->w, surface->h, 0,
+				  mode, GL_UNSIGNED_BYTE, surface->pixels );
+				  
+	//Added by Albert
+	if (surface)
+		SDL_FreeSurface(surface);     
+	if (alphaImage)
+		SDL_FreeSurface(alphaImage);   
+	if (conv)
+		SDL_FreeSurface(conv);
 
 }
 
@@ -254,13 +253,13 @@ void initSDL() {
   }
 
   /* Initialize SDL */
-  /*if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
+ if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
     fprintf(stderr, "Unable to initialize SDL: %s\n", SDL_GetError());
     exit(1);
-  }*/
+  }
   
- // if ( SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0 ) {
-  if ( SDL_Init(SDL_INIT_JOYSTICK) < 0 ) {
+  if ( SDL_InitSubSystem(SDL_INIT_JOYSTICK) < 0 ) {
+  //if ( SDL_Init(SDL_INIT_JOYSTICK) < 0 ) {
     fprintf(stderr, "Unable to initialize SDL_JOYSTICK: %s\n", SDL_GetError());
     joystickMode = 0;
     exit(1);
@@ -273,16 +272,15 @@ void initSDL() {
   	//videoFlags = SDL
     //videoFlags = SDL_OPENGL | SDL_RESIZABLE;
   //} else {
-    //videoFlags = SDL_OPENGL | SDL_FULLSCREEN;
+   // videoFlags = SDL_OPENGL | SDL_FULLSCREEN;
   //}
-videoFlags = SDL_SWSURFACE;
+//videoFlags = SDL_SWSURFACE;
 
-  /*if ( SDL_SetVideoMode(screenWidth, screenHeight, 16, videoFlags) == NULL ) {
+if ( SDL_SetVideoMode(screenWidth, screenHeight, 16, videoFlags) == NULL ) {
     fprintf(stderr, "Unable to create OpenGL screen: %s\n", SDL_GetError());
     SDL_Quit();
     exit(2);
-  }*/
-
+  }
 
   if (joystickMode == 1) {
   	SDL_JoystickEventState(SDL_ENABLE);
@@ -355,7 +353,7 @@ void drawGLSceneEnd() {
 }
 
 void swapGLScene() {
-	//SDL_GL_SwapBuffers();
+	SDL_GL_SwapBuffers();
 	//Switched to XenonGLDisplay() for xenos
 	//XenonGLDisplay();
   //XenonEndGl();

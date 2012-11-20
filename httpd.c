@@ -687,12 +687,13 @@ void httpd_start(void) {
     tcp_bind(listen_pcb, IP_ADDR_ANY, 80);
     listen_pcb = tcp_listen(listen_pcb);
     tcp_accept(listen_pcb, http_accept);
+    printf("HTTPD Started\n");
 }
 
 void http_thread() {
 	screenshot_buffer = malloc(SCREEN_BUFFER_SIZE);
 	//network_init();
-	//network_print_config();
+	network_print_config();
 	httpd_start();
 	while(1) {
 		network_poll();
